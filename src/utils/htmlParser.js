@@ -64,3 +64,35 @@ export function parseInstagramHtml(htmlString) {
   
   return users;
 }
+
+export function parsePendingRequestsHtml(htmlString) {
+  if (!htmlString || typeof htmlString !== 'string') return [];
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, 'text/html');
+  const records = Array.from(doc.querySelectorAll('main > div._a6-g'));
+
+  return records.flatMap((record) => {
+    const cells = Array.from(record.querySelectorAll('td'));
+    let username = '';
+
+    for (let index = 0; index < cells.length - 1; index += 1) {
+      if (cells[index].textContent.trim().toLowerCase() === 'username') {
+        username = cells[index + 1].textContent.trim();
+        break;
+      }
+    }
+
+    if (!username) return [];
+
+    const dateStr = record.querySelector('._3-94._a6-o')?.textContent.trim() || 'Unknown Date';
+    const timestamp = new Date(dateStr).getTime();
+
+    return [{
+      username,
+      profileUrl: `https://www.instagram.com/${encodeURIComponent(username)}/`,
+      dateStr,
+      timestamp: Number.isNaN(timestamp) ? 0 : timestamp,
+    }];
+  });
+}
