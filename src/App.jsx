@@ -10,7 +10,7 @@ import FilterBar from './components/FilterBar';
 import UserList from './components/UserList';
 
 // Utility Functions (to be created next)
-import { parseInstagramHtml } from './utils/htmlParser';
+import { parseInstagramHtml, parsePendingRequestsHtml } from './utils/htmlParser';
 import { compareRelationships } from './utils/compareLists';
 import { exportUserList } from './utils/exportData';
 
@@ -40,7 +40,7 @@ export default function App() {
       );
       const followingList = parseInstagramHtml(rawHtmlData.following);
       const pendingList = rawHtmlData.pending
-        ? parseInstagramHtml(rawHtmlData.pending)
+        ? parsePendingRequestsHtml(rawHtmlData.pending)
         : [];
 
       return compareRelationships(followersList, followingList, pendingList);
