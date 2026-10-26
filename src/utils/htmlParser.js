@@ -4,15 +4,39 @@ export function parseInstagramHtml(htmlString) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlString, 'text/html');
   
-  // Instagram exports wrap users in anchor tags pointing to their profiles
-  const userLinks = Array.from(doc.querySelectorAll('a[target="_blank"]'));
+  // Instagram exports can omit target="_blank" on pending-request profile links.
+  const userLinks = Array.from(doc.querySelectorAll('a[href]'));
   
   const users = [];
   
   for (const link of userLinks) {
-    const username = link.textContent.trim();
-    const profileUrl = link.href;
-    
+    const href = link.getAttribute('href');
+    let profile;
+
+    try {
+      profile = new URL(href, 'https://www.instagram.com');
+    } catch {
+      continue;
+    }
+
+    if (
+      profile.hostname !== 'instagram.com' &&
+      !profile.hostname.endsWith('.instagram.com')
+    ) {
+      continue;
+    }
+
+    let pathSegments = profile.pathname.split('/').filter(Boolean);
+    if (pathSegments[0] === '_u') pathSegments = pathSegments.slice(1);
+    if (pathSegments.length !== 1) continue;
+
+    let username;
+    try {
+      username = decodeURIComponent(pathSegments[0]);
+    } catch {
+      continue;
+    }
+
     // Instagram's current HTML structure places the date in the next sibling div
     // Structure: <div> <div><a href="...">username</a></div> <div>Oct 24, 2026 ...</div> </div>
     let dateStr = '';
@@ -28,10 +52,10 @@ export function parseInstagramHtml(htmlString) {
       console.warn(`Could not parse date for user ${username}`);
     }
 
-    if (username && profileUrl.includes('instagram.com')) {
+    if (username) {
       users.push({
         username,
-        profileUrl,
+        profileUrl: profile.href,
         dateStr: dateStr || 'Unknown Date',
         timestamp: isNaN(timestamp) ? 0 : timestamp
       });
